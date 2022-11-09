@@ -7,10 +7,10 @@ on:
         required: true
         type: string
       release_version:
-        required: true
+        required: false
         type: string
       artifact_id:
-        required: true
+        required: false
         type: string
       project_id:
         required: true
@@ -31,10 +31,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Set tag as environment variable
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: Set Artifact ID
+        run: echo "ARTIFACT_ID=$( mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout )" >> $GITHUB_ENV
       - name: Print variables
         run: |
-          echo ${{ inputs.release_version }}
-          echo ${{ inputs.artifact_id }}
+          echo ${{ env.RELEASE_VERSION }}
+          echo ${{ env.ARTIFACT_ID }}
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v0
         with:
@@ -49,7 +53,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
       - name: Set version by tag
-        run: mvn versions:set "-DnewVersion=${{ inputs.release_version }}"
+        run: mvn versions:set "-DnewVersion=${{ env.RELEASE_VERSION }}"
       - name: Build with Maven
         run: mvn clean install "-DskipTests"
       - name: Deploy artifact to server
@@ -58,7 +62,7 @@ jobs:
           username: ${{ inputs.username }}
           server: ${{ inputs.server }}
           ssh_private_key: ${{ secrets.deploy_ssh_key }}
-          local_path: 'target/${{ inputs.artifact_id }}-${{ inputs.release_version }}.jar'
+          local_path: 'target/${{ env.ARTIFACT_ID }}-${{ env.RELEASE_VERSION }}.jar'
           remote_path: '${{ inputs.sftp_target_dir }}/releases'
       - name: Update symlink for current version
         uses: appleboy/ssh-action@master
@@ -66,4 +70,4 @@ jobs:
           host: ${{ inputs.server }}
           username: ${{ inputs.username }}
           key: ${{ secrets.deploy_ssh_key }}
-          script: 'cd ${{ inputs.sftp_target_dir }}/apps && ln -sf ../releases/${{ inputs.artifact_id }}-${{ inputs.release_version }}.jar ${{ inputs.artifact_id }}.jar '
+          script: 'cd ${{ inputs.sftp_target_dir }}/apps && ln -sf ../releases/${{ env.ARTIFACT_ID }}-${{ env.RELEASE_VERSION }}.jar ${{ env.ARTIFACT_ID }}.jar '

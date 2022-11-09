@@ -15,4 +15,4 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - run: echo "Hello {{ secrets.username }}! Repo for customer {{ inputs.customer }}"
+      - run: echo "Hello ${{ secrets.username }}! Repo for customer ${{ inputs.customer }}"

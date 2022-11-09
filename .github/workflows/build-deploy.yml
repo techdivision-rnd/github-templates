@@ -1,0 +1,67 @@
+name: Build App with Maven and deploy it onto an SFTP server
+
+on:
+  workflow_call:
+    inputs:
+      sftp_target_dir:
+        required: true
+        type: string
+      release_version:
+        required: true
+        type: string
+      artifact_id:
+        required: true
+        type: string
+      project_id:
+        required: true
+        type: string
+      username:
+        required: true
+        type: string
+      server:
+        required: true
+        type: string
+    secrets:
+      gcp_artifactory_service_account:
+        required: true
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Print variables
+        run: |
+          echo ${{ inputs.release_version }}
+          echo ${{ inputs.artifact_id }}
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0
+        with:
+          project_id: ${{ inputs.project_id }}
+          service_account_key: ${{ secrets.GCP_ARTIFACTORY_SERVICE_ACCOUNT}}
+          export_default_credentials: true
+      - name: Cache local Maven repository
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Set version by tag
+        run: mvn versions:set "-DnewVersion=${{ input.release_version }}"
+      - name: Build with Maven
+        run: mvn clean install "-DskipTests"
+      - name: Deploy artifact to server
+        uses: wlixcc/SFTP-Deploy-Action@v1.0
+        with:
+          username: ${{ inputs.username }}
+          server: ${{ inputs.server }}
+          ssh_private_key: ${{ secrets.DEPLOY_SSH_KEY }}
+          local_path: 'target/${{ inputs.artifact_id }}-${{ inputs.release_version }}.jar'
+          remote_path: '${{ inputs.sftp_target_dir }}/releases'
+      - name: Update symlink for current version
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ inputs.server }}
+          username: ${{ inputs.username }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: 'cd ${{ inputs.sftp_target_dir }}/apps && ln -sf ../releases/${{ inputs.artifact_id }}-${{ inputs.release_version }}.jar ${{ inputs.artifact_id }}.jar '

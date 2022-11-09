@@ -24,6 +24,8 @@ on:
     secrets:
       gcp_artifactory_service_account:
         required: true
+      deploy_ssh_key:
+        required: true
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
@@ -55,7 +57,7 @@ jobs:
         with:
           username: ${{ inputs.username }}
           server: ${{ inputs.server }}
-          ssh_private_key: ${{ secrets.DEPLOY_SSH_KEY }}
+          ssh_private_key: ${{ secrets.deploy_ssh_key }}
           local_path: 'target/${{ inputs.artifact_id }}-${{ inputs.release_version }}.jar'
           remote_path: '${{ inputs.sftp_target_dir }}/releases'
       - name: Update symlink for current version
@@ -63,5 +65,5 @@ jobs:
         with:
           host: ${{ inputs.server }}
           username: ${{ inputs.username }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          key: ${{ secrets.deploy_ssh_key }}
           script: 'cd ${{ inputs.sftp_target_dir }}/apps && ln -sf ../releases/${{ inputs.artifact_id }}-${{ inputs.release_version }}.jar ${{ inputs.artifact_id }}.jar '

@@ -1,0 +1,38 @@
+name: Build App with Maven, containerize it with jib and push it to Google Cloud Container Registry
+
+on:
+  workflow_call:
+    inputs:
+      gcloud_project_id:
+        required: true
+        type: string
+    secrets:
+      gcp_artifactory_service_account:
+        required: true
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set tag as environment variable
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: Set GCP project id as environment variable
+        run: echo "GCP_PROJECT=${{inputs.gcloud_project_id}}" >> $GITHUB_ENV
+      - name: Print variables
+        run: |
+          echo ${{ env.RELEASE_VERSION }}
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0
+        with:
+          project_id: ${{inputs.gcloud_project_id}}
+          service_account_key: ${{ secrets.gcp_artifactory_service_account}}
+          export_default_credentials: true
+      - name: Cache local Maven repository
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Build with Maven
+        run: mvn clean install jib:build "-DskipTests"

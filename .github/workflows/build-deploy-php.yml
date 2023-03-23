@@ -1,0 +1,89 @@
+name: Build App with Composer and deploy it onto an SFTP server
+
+on:
+  workflow_call:
+    inputs:
+      sftp_target_dir:
+        required: true
+        type: string
+      artifact_id:
+        required: true
+        type: string
+      php_version:
+        required: true
+        type: string
+      username:
+        required: true
+        type: string
+      server:
+        required: true
+        type: string
+    secrets:
+      deploy_ssh_key:
+        required: true
+      composer_auth_json:
+        required: true
+      ssh_key:
+        required: false
+      ssh_key_pub:
+        required: false
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set tag as environment variable
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: Print variables
+        run: |
+          echo ${{ env.RELEASE_VERSION }}
+          echo ${{ inputs.artifact_id }}
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "::set-output name=dir::$(composer config cache-files-dir)"
+      - name: Cache composer dependencies
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-
+      - name: Add HTTP basic auth credentials
+        run: echo '${{ secrets.composer_auth_json }}' > $GITHUB_WORKSPACE/auth.json
+      - name: Install composer dependencies
+        uses: php-actions/composer@v6
+        with:
+          ssh_key: ${{ secrets.ssh_key }}
+          ssh_key_pub: ${{ secrets.ssh_key_pub }}
+          dev: no
+          php_version: ${{ inputs.php_version }}
+          php_extensions: intl
+          version: 1
+      - name: Remove auth.json file
+        run: rm -f $GITHUB_WORKSPACE/auth.json
+      - name: Create artifact
+        uses: montudor/action-zip@v1
+        with:
+          args: zip --symlinks -qq -r ${{ inputs.artifact_id }}.zip ./
+      - name: Deploy artifact to server
+        uses: wlixcc/SFTP-Deploy-Action@v1.0
+        with:
+          server: ${{ inputs.server }}
+          username: ${{ inputs.username }}
+          ssh_private_key: ${{ secrets.deploy_ssh_key }}
+          local_path: '${{ inputs.artifact_id }}.zip'
+          remote_path: '${{ inputs.sftp_target_dir }}/releases/'
+      - name: Unpack artifact
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ inputs.server }}
+          username: ${{ inputs.username }}
+          key: ${{ secrets.deploy_ssh_key }}
+          script: 'cd ${{ inputs.sftp_target_dir }}/releases && unzip -qq ${{ inputs.artifact_id }}.zip -d ${{ inputs.artifact_id }}-${{ env.RELEASE_VERSION }} && rm -r ${{ inputs.artifact_id }}.zip '
+
+      - name: Update symlink for current version
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ inputs.server }}
+          username: ${{ inputs.username }}
+          key: ${{ secrets.deploy_ssh_key }}
+          script: 'cd ${{ inputs.sftp_target_dir }}/apps && ln -sfn ../releases/${{ inputs.artifact_id }}-${{ env.RELEASE_VERSION }} ${{ inputs.artifact_id }} '

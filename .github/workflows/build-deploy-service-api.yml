@@ -1,0 +1,94 @@
+name: Build App with Composer and deploy it onto an SFTP server
+
+on:
+  workflow_call:
+    inputs:
+      sftp_target_dir:
+        required: true
+        type: string
+      project_id:
+        required: true
+        type: string
+      username:
+        required: true
+        type: string
+      server:
+        required: true
+        type: string
+    secrets:
+      deploy_ssh_key:
+        required: true
+      gcp_artifactory_service_account:
+        required: true
+      google_credentials:
+        required: false
+        default: ""
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set tag as environment variable
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: Set Artifact ID
+        run: echo "ARTIFACT_ID=$( mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout )" >> $GITHUB_ENV
+      - name: Print variables
+        run: |
+          echo ${{ env.RELEASE_VERSION }}
+          echo ${{ env.ARTIFACT_ID }}
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0
+        with:
+          project_id: ${{ inputs.project_id }}
+          service_account_key: ${{ secrets.gcp_artifactory_service_account}}
+          export_default_credentials: true
+      - name: Cache local Maven repository
+        uses: actions/cache@v2
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+      - name: Build with Maven
+        run: mvn clean install "-DskipTests"
+      - name: Create env File
+        run: echo "GOOGLE_CREDENTIALS=${{ secrets.google_credentials }}" > .env
+      - name: Deploy env file to server
+        uses: wlixcc/SFTP-Deploy-Action@v1.0
+        with:
+          username: ${{ inputs.username }}
+          server: ${{ inputs.server }}
+          ssh_private_key: ${{ secrets.deploy_ssh_key }}
+          local_path: '.env'
+          remote_path: '${{ inputs.sftp_target_dir }}/releases/services/service-api'
+      - name: Deploy artifact to server
+        uses: wlixcc/SFTP-Deploy-Action@v1.0
+        with:
+          username: ${{ inputs.username }}
+          server: ${{ inputs.server }}
+          ssh_private_key: ${{ secrets.deploy_ssh_key }}
+          local_path: 'target/*.jar'
+          remote_path: '${{ inputs.sftp_target_dir }}/releases/services/service-api'
+      - name: Deploy Dockerfile to server
+        uses: wlixcc/SFTP-Deploy-Action@v1.0
+        with:
+          username: ${{ inputs.username }}
+          server: ${{ inputs.server }}
+          ssh_private_key: ${{ secrets.deploy_ssh_key }}
+          local_path: 'Dockerfile'
+          remote_path: '${{ inputs.sftp_target_dir }}/releases/services/service-api'
+      - name: Deploy Docker compose file to server
+        uses: wlixcc/SFTP-Deploy-Action@v1.0
+        with:
+          username: ${{ inputs.username }}
+          server: ${{ inputs.server }}
+          ssh_private_key: ${{ secrets.deploy_ssh_key }}
+          local_path: 'docker-compose.yml'
+          remote_path: '${{ inputs.sftp_target_dir }}/releases/services/service-api'
+      - name: Deploy artifact to server
+        uses: appleboy/ssh-action@master
+        with:
+          username: ${{ inputs.username }}
+          host: ${{ inputs.server }}
+          key: ${{ secrets.deploy_ssh_key }}
+          script: 'cd ${{ inputs.sftp_target_dir }}/releases/services/service-api && docker-compose down && docker-compose up -d --build'

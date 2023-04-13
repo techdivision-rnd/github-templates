@@ -1,0 +1,85 @@
+name: Build App with Composer and deploy it onto an SFTP server
+
+on:
+  workflow_call:
+    inputs:
+      sftp_target_dir:
+        required: true
+        type: string
+      username:
+        required: true
+        type: string
+      server:
+        required: true
+        type: string
+    secrets:
+      deploy_ssh_key:
+        required: true
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Deploy src to server
+        uses: wlixcc/SFTP-Deploy-Action@v1.0
+        with:
+          username: ${{ inputs.username }}
+          server: ${{ inputs.server }}
+          ssh_private_key: ${{ secrets.deploy_ssh_key }}
+          local_path: 'src'
+          remote_path: '${{ inputs.sftp_target_dir }}/releases/services/data-explorer'
+      - name: Deploy public to server
+        uses: wlixcc/SFTP-Deploy-Action@v1.0
+        with:
+          username: ${{ inputs.username }}
+          server: ${{ inputs.server }}
+          ssh_private_key: ${{ secrets.deploy_ssh_key }}
+          local_path: 'public'
+          remote_path: '${{ inputs.sftp_target_dir }}/releases/services/data-explorer'
+      - name: Deploy package to server
+        uses: wlixcc/SFTP-Deploy-Action@v1.0
+        with:
+          username: ${{ inputs.username }}
+          server: ${{ inputs.server }}
+          ssh_private_key: ${{ secrets.deploy_ssh_key }}
+          local_path: 'package.json'
+          remote_path: '${{ inputs.sftp_target_dir }}/releases/services/data-explorer'
+      - name: Deploy yarn to server
+        uses: wlixcc/SFTP-Deploy-Action@v1.0
+        with:
+          username: ${{ inputs.username }}
+          server: ${{ inputs.server }}
+          ssh_private_key: ${{ secrets.deploy_ssh_key }}
+          local_path: 'yarn.lock'
+          remote_path: '${{ inputs.sftp_target_dir }}/releases/services/data-explorer'
+      - name: Deploy nginx config to server
+        uses: wlixcc/SFTP-Deploy-Action@v1.0
+        with:
+          username: ${{ inputs.username }}
+          server: ${{ inputs.server }}
+          ssh_private_key: ${{ secrets.deploy_ssh_key }}
+          local_path: 'nginx.conf'
+          remote_path: '${{ inputs.sftp_target_dir }}/releases/services/data-explorer'
+      - name: Deploy docker file to server
+        uses: wlixcc/SFTP-Deploy-Action@v1.0
+        with:
+          username: ${{ inputs.username }}
+          server: ${{ inputs.server }}
+          ssh_private_key: ${{ secrets.deploy_ssh_key }}
+          local_path: 'Dockerfile'
+          remote_path: '${{ inputs.sftp_target_dir }}/releases/services/data-explorer'
+      - name: Deploy docker-compose file to server
+        uses: wlixcc/SFTP-Deploy-Action@v1.0
+        with:
+          username: ${{ inputs.username }}
+          server: ${{ inputs.server }}
+          ssh_private_key: ${{ secrets.deploy_ssh_key }}
+          local_path: 'docker-compose.yml'
+          remote_path: '${{ inputs.sftp_target_dir }}/releases/services/data-explorer'
+      - name: Deploy artifact to server
+        uses: appleboy/ssh-action@master
+        with:
+          username: ${{ inputs.username }}
+          host: ${{ inputs.server }}
+          key: ${{ secrets.deploy_ssh_key }}
+          script: 'cd ${{ inputs.sftp_target_dir }}/releases/services/data-explorer && docker-compose down && docker-compose up -d --build'

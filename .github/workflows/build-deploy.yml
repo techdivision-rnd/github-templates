@@ -21,6 +21,10 @@ on:
       server:
         required: true
         type: string
+      suffix:
+        required: false
+        type: string
+        default: ""
     secrets:
       gcp_artifactory_service_account:
         required: true
@@ -37,10 +41,26 @@ jobs:
         run: echo "GCP_PROJECT=${{ inputs.project_id }}" >> $GITHUB_ENV
       - name: Set Artifact ID
         run: echo "ARTIFACT_ID=$( mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout )" >> $GITHUB_ENV
+      - name: Set Artifact name
+        run: |
+          if [ "${{ inputs.suffix }}" == "" ]; then
+            echo "ARTIFACT_NAME=${{ env.ARTIFACT_ID }}-${{ env.RELEASE_VERSION }}.jar" >> $GITHUB_ENV
+          else
+            echo "ARTIFACT_NAME=${{ env.ARTIFACT_ID }}-${{ env.RELEASE_VERSION }}-${{ inputs.suffix }}.jar" >> $GITHUB_ENV
+          fi
+      - name: Set Artifact link name
+        run: |
+          if [ "${{ inputs.suffix }}" == "" ]; then
+            echo "ARTIFACT_LINK=${{ env.ARTIFACT_ID }}.jar" >> $GITHUB_ENV
+          else
+            echo "ARTIFACT_LINK=${{ env.ARTIFACT_ID }}-${{ inputs.suffix }}.jar" >> $GITHUB_ENV
+          fi
       - name: Print variables
         run: |
           echo ${{ env.RELEASE_VERSION }}
           echo ${{ env.ARTIFACT_ID }}
+          echo ${{ env.ARTIFACT_NAME }}
+          echo ${{ env.ARTIFACT_LINK }}
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v0
         with:
@@ -65,11 +85,11 @@ jobs:
           server: ${{ inputs.server }}
           ssh_private_key: ${{ secrets.deploy_ssh_key }}
           local_path: 'target/${{ env.ARTIFACT_ID }}-${{ env.RELEASE_VERSION }}.jar'
-          remote_path: '${{ inputs.sftp_target_dir }}/releases'
+          remote_path: '${{ inputs.sftp_target_dir }}/releases/${{ env.ARTIFACT_NAME }}'
       - name: Update symlink for current version
         uses: appleboy/ssh-action@master
         with:
           host: ${{ inputs.server }}
           username: ${{ inputs.username }}
           key: ${{ secrets.deploy_ssh_key }}
-          script: 'cd ${{ inputs.sftp_target_dir }}/apps && ln -sf ../releases/${{ env.ARTIFACT_ID }}-${{ env.RELEASE_VERSION }}.jar ${{ env.ARTIFACT_ID }}.jar '
+          script: 'cd ${{ inputs.sftp_target_dir }}/apps && ln -sf ../releases/${{ env.ARTIFACT_NAME }} ${{ env.ARTIFACT_LINK }} '

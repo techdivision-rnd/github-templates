@@ -22,7 +22,6 @@ on:
         required: true
       google_credentials:
         required: false
-        default: ""
 jobs:
   build-deploy:
     runs-on: ubuntu-latest

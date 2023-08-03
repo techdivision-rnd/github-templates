@@ -54,7 +54,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-maven-
       - name: Set Artifact ID
-        run: echo "ARTIFACT_ID=$( mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout )" >> $GITHUB_ENV
+        run: echo "ARTIFACT_ID=$( mvn help:evaluate -Dproject.gcp-project=${{ inputs.project_id }} -Dexpression=project.artifactId -q -DforceStdout )" >> $GITHUB_ENV
       - name: Set Artifact name
         run: |
           if [ "${{ inputs.suffix }}" == "" ]; then
@@ -78,7 +78,7 @@ jobs:
       - name: Set version by tag
         run: mvn versions:set "-DnewVersion=${{ env.RELEASE_VERSION }}"
       - name: Build with Maven
-        run: mvn clean install "-DskipTests"
+        run: mvn clean install "-Dproject.gcp-project=${{ inputs.project_id }} -DskipTests"
       - name: Deploy artifact to server
         uses: wlixcc/SFTP-Deploy-Action@v1.0
         with:

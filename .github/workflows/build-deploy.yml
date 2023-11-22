@@ -35,6 +35,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: Set tag as environment variable
+        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: Set GCP project id as environment variable
+        run: echo "GCP_PROJECT=${{ inputs.project_id }}" >> $GITHUB_ENV
       - id: 'auth'
         name: 'Authenticate to Google Cloud'
         uses: 'google-github-actions/auth@v1'
@@ -49,10 +53,6 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
-      - name: Set tag as environment variable
-        run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-      - name: Set GCP project id as environment variable
-        run: echo "GCP_PROJECT=${{ inputs.project_id }}" >> $GITHUB_ENV
       - name: Set Artifact ID
         run: echo "ARTIFACT_ID=$( mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout )" >> $GITHUB_ENV
       - name: Set Artifact name

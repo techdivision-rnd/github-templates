@@ -1,32 +1,47 @@
-name: Build App with Maven, containerize it with jib and push it to Google Cloud Container Registry
+name: Build App with Maven and deploy it onto an SFTP Cloud Server
 
 on:
   workflow_call:
     inputs:
-      gcloud_project_id:
+      project_id:
         required: true
         type: string
+      username:
+        required: true
+        type: string
+      server:
+        required: true
+        type: string
+      suffix:
+        required: false
+        type: string
+        default: ""
     secrets:
       gcp_artifactory_service_account:
         required: true
+      deploy_ssh_key:
+        required: true
+
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+
       - name: Set tag as environment variable
         run: echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
       - name: Set GCP project id as environment variable
-        run: echo "GCP_PROJECT=${{inputs.gcloud_project_id}}" >> $GITHUB_ENV
-      - name: Print variables
-        run: |
-          echo ${{ env.RELEASE_VERSION }}
+        run: echo "GCP_PROJECT=${{ inputs.project_id }}" >> $GITHUB_ENV
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_ARTIFACTORY_SERVICE_ACCOUNT}}
+
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v0
-        with:
-          project_id: ${{inputs.gcloud_project_id}}
-          service_account_key: ${{ secrets.gcp_artifactory_service_account}}
-          export_default_credentials: true
+
       - name: Cache local Maven repository
         uses: actions/cache@v2
         with:
@@ -34,5 +49,57 @@ jobs:
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
             ${{ runner.os }}-maven-
+
+      - name: Set Artifact ID
+        run: echo "ARTIFACT_ID=$( mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout )" >> $GITHUB_ENV
+
+      - name: Set Artifact name
+        run: |
+          if [ "${{ inputs.suffix }}" == "" ]; then
+            echo "ARTIFACT_NAME=${{ env.ARTIFACT_ID }}-${{ env.RELEASE_VERSION }}.jar" >> $GITHUB_ENV
+          else
+            echo "ARTIFACT_NAME=${{ env.ARTIFACT_ID }}-${{ env.RELEASE_VERSION }}-${{ inputs.suffix }}.jar" >> $GITHUB_ENV
+          fi
+
+      - name: Set Artifact link name
+        run: |
+          if [ "${{ inputs.suffix }}" == "" ]; then
+            echo "ARTIFACT_LINK=${{ env.ARTIFACT_ID }}.jar" >> $GITHUB_ENV
+          else
+            echo "ARTIFACT_LINK=${{ env.ARTIFACT_ID }}-${{ inputs.suffix }}.jar" >> $GITHUB_ENV
+          fi
+
+      - name: Print variables
+        run: |
+          echo ${{ env.RELEASE_VERSION }}
+          echo ${{ env.ARTIFACT_ID }}
+          echo ${{ env.ARTIFACT_NAME }}
+          echo ${{ env.ARTIFACT_LINK }}
+
+      - name: Set version by tag
+        run: mvn versions:set "-DnewVersion=${{ env.RELEASE_VERSION }}"
+
       - name: Build with Maven
-        run: mvn clean install jib:build "-DskipTests"
+        run: mvn clean install "-DskipTests"
+
+      - name: Deploy artifact to server
+        uses: wlixcc/SFTP-Deploy-Action@v1.0
+        with:
+          username: ${{ inputs.username }}
+          server: ${{ inputs.server }}
+          port: 2022
+          ssh_private_key: ${{ secrets.deploy_ssh_key }}
+          local_path: 'target/${{ env.ARTIFACT_ID }}-${{ env.RELEASE_VERSION }}.jar'
+          remote_path: 'releases/${{ env.ARTIFACT_NAME }}'
+
+      - name: Import SSH Key
+        run: |
+          echo "${{ secrets.deploy_ssh_key }}" > private_key
+          chmod 600 private_key
+
+      - name: Symlink current version via sftp
+        run: |
+          sftp -P2022 -i private_key -oStrictHostKeyChecking=no -oBatchMode=yes -b - ${{ inputs.username }}@${{ inputs.server }} <<EOF
+            -rm ${{ env.ARTIFACT_LINK }}
+            ln -s releases/${{ env.ARTIFACT_NAME }} ${{ env.ARTIFACT_LINK }}
+          EOF

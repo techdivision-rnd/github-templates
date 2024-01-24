@@ -103,3 +103,6 @@ jobs:
             -rm ${{ env.ARTIFACT_LINK }}
             ln -s releases/${{ env.ARTIFACT_NAME }} ${{ env.ARTIFACT_LINK }}
           EOF
+          notify:
+      
+      - uses: techdivision-rnd/github-templates/.github/workflows/deployment-notification.yml@master

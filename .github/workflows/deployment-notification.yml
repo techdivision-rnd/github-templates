@@ -31,7 +31,7 @@ jobs:
                   "widgets": [
                     {
                       "keyValue": {
-                        "topLabel": "Pipeline",
+                        "topLabel": "Component",
                         "content": "'"$REPOSITORY"'"
                       }
                     },
@@ -42,28 +42,9 @@ jobs:
                       }
                     },
                     {
-                      "keyValue": {
-                        "topLabel": "Description",
-                        "content": "'"$COMMIT_MESSAGE"'"
+                      "textParagraph": {
+                        "text": "<a href=\"https://github.com/'"$REPOSITORY"'/releases/tag/'"$TAG_NAME"'\">View Release Notes</a>"
                       }
-                    }
-                  ]
-                },
-                {
-                  "widgets": [
-                    {
-                      "buttons": [
-                        {
-                          "textButton": {
-                            "text": "VIEW REPOSITORY",
-                            "onClick": {
-                              "openLink": {
-                                "url": "https://github.com/'"$REPOSITORY"'"
-                              }
-                            }
-                          }
-                        }
-                      ]
                     }
                   ]
                 }

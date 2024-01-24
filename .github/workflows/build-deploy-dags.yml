@@ -16,6 +16,8 @@ on:
     secrets:
       deploy_ssh_key:
         required: true
+      GOOGLE_CHAT_WEBHOOK:
+        required: true
 
 jobs:
   deploy-dags:
@@ -48,4 +50,4 @@ jobs:
       - uses: teknatha136/actions-google-chat-text-message@main
         with:
           google-chat-webhook: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
-          text-message: Version ${{ github.ref_name }} of ${{ github.repository }} was deployed by ${{ github.actor }}
+          text-message: Airflow DAGs ${{ github.repository }} deployed by ${{ github.actor }}

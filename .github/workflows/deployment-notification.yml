@@ -53,7 +53,7 @@ jobs:
                     {
                       "keyValue": {
                         "topLabel": "Description",
-                        "content": "'${{ steps.get_release.outputs.description }}'"
+                        "content": "'"$COMMIT_MESSAGE"'"
                       }
                     }
                   ]

@@ -51,4 +51,4 @@ jobs:
               ]
             }
           ]
-        }' "$CHAT_WEBHOOK"
+        }' $CHAT_WEBHOOK

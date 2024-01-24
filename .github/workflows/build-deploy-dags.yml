@@ -44,5 +44,6 @@ jobs:
           RCLONE_SFTP_USER: ${{ inputs.username }}
           RCLONE_SFTP_KEY_FILE: private_key
           RCLONE_SFTP_DISABLE_HASHCHECK: true
-
-      - uses: techdivision-rnd/github-templates/.github/workflows/deployment-notification.yml@master
+  
+  notify:
+    uses: techdivision-rnd/github-templates/.github/workflows/deployment-notification.yml@master

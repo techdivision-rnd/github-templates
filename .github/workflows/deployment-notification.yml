@@ -14,15 +14,6 @@ jobs:
       COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
-    - name: Get Release Description
-      id: get_release
-      run: |
-        RELEASE_DATA=$(curl -H "Authorization: token $GITHUB_TOKEN" \
-          -H "Accept: application/vnd.github.v3+json" \
-          https://api.github.com/repos/$REPOSITORY/releases/tags/$TAG_NAME)
-        RELEASE_DESCRIPTION=$(echo $RELEASE_DATA | jq -r ".body")
-        echo "::set-output name=description::$RELEASE_DESCRIPTION"
-
     - name: Send notification to webhook
       run: |
         curl -X POST -H 'Content-type: application/json' --data \

@@ -7,12 +7,8 @@ jobs:
   notify:
     runs-on: ubuntu-latest
     env:
-      CHAT_WEBHOOK: ${{ secrets.NOTIFY_WEBHOOK }}
       REPOSITORY: ${{ github.repository }}
       TAG_NAME: ${{ github.ref_name }}
-      COMMIT_SHA: ${{ github.sha }}
-      COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
     - name: Send notification to webhook
       run: |
@@ -51,4 +47,4 @@ jobs:
               ]
             }
           ]
-        }' $CHAT_WEBHOOK
+        }' ${{ secrets.NOTIFY_WEBHOOK }}

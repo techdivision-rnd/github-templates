@@ -47,5 +47,5 @@ jobs:
 
       - uses: teknatha136/actions-google-chat-text-message@main
         with:
-          google-chat-webhook: ${{ secrets.NOTIFY_WEBHOOK }}
+          google-chat-webhook: ${{ secrets.GOOGLE_CHAT_WEBHOOK }}
           text-message: Version ${{ github.ref_name }} of ${{ github.repository }} was deployed by ${{ github.actor }}

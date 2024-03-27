@@ -78,7 +78,7 @@ jobs:
           host: ${{ inputs.server }}
           username: ${{ inputs.username }}
           key: ${{ secrets.deploy_ssh_key }}
-          script: 'cd ${{ inputs.sftp_target_dir }}/releases && unzip -qq ${{ inputs.artifact_id }}.zip -d ${{ inputs.artifact_id }}-${{ env.RELEASE_VERSION }} && rm -r ${{ inputs.artifact_id }}.zip '
+          script: 'cd ${{ inputs.sftp_target_dir }}/releases && rm -rf ${{ inputs.artifact_id }}-${{ env.RELEASE_VERSION }} && unzip -qq ${{ inputs.artifact_id }}.zip -d ${{ inputs.artifact_id }}-${{ env.RELEASE_VERSION }} && rm -r ${{ inputs.artifact_id }}.zip '
 
       - name: Update symlink for current version
         uses: appleboy/ssh-action@master

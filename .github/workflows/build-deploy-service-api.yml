@@ -68,26 +68,26 @@ jobs:
           ssh_private_key: ${{ secrets.deploy_ssh_key }}
           local_path: 'target/*.jar'
           remote_path: '${{ inputs.sftp_target_dir }}/releases/services/service-api'
-      - name: Deploy Dockerfile to server
-        uses: wlixcc/SFTP-Deploy-Action@v1.0
-        with:
-          username: ${{ inputs.username }}
-          server: ${{ inputs.server }}
-          ssh_private_key: ${{ secrets.deploy_ssh_key }}
-          local_path: 'Dockerfile'
-          remote_path: '${{ inputs.sftp_target_dir }}/releases/services/service-api'
-      - name: Deploy Docker compose file to server
-        uses: wlixcc/SFTP-Deploy-Action@v1.0
-        with:
-          username: ${{ inputs.username }}
-          server: ${{ inputs.server }}
-          ssh_private_key: ${{ secrets.deploy_ssh_key }}
-          local_path: 'docker-compose.yml'
-          remote_path: '${{ inputs.sftp_target_dir }}/releases/services/service-api'
-      - name: Deploy artifact to server
-        uses: appleboy/ssh-action@master
-        with:
-          username: ${{ inputs.username }}
-          host: ${{ inputs.server }}
-          key: ${{ secrets.deploy_ssh_key }}
-          script: 'cd ${{ inputs.sftp_target_dir }}/releases/services/service-api && docker-compose down && docker-compose up -d --build'
+#      - name: Deploy Dockerfile to server
+#        uses: wlixcc/SFTP-Deploy-Action@v1.0
+#        with:
+#          username: ${{ inputs.username }}
+#          server: ${{ inputs.server }}
+#          ssh_private_key: ${{ secrets.deploy_ssh_key }}
+#          local_path: 'Dockerfile'
+#          remote_path: '${{ inputs.sftp_target_dir }}/releases/services/service-api'
+#      - name: Deploy Docker compose file to server
+#        uses: wlixcc/SFTP-Deploy-Action@v1.0
+#        with:
+#          username: ${{ inputs.username }}
+#          server: ${{ inputs.server }}
+#          ssh_private_key: ${{ secrets.deploy_ssh_key }}
+#          local_path: 'docker-compose.yml'
+#          remote_path: '${{ inputs.sftp_target_dir }}/releases/services/service-api'
+#      - name: Deploy artifact to server
+#        uses: appleboy/ssh-action@master
+#        with:
+#          username: ${{ inputs.username }}
+#          host: ${{ inputs.server }}
+#          key: ${{ secrets.deploy_ssh_key }}
+#          script: 'cd ${{ inputs.sftp_target_dir }}/releases/services/service-api && docker-compose down && docker-compose up -d --build'

@@ -48,7 +48,7 @@ jobs:
           service_account_key: ${{ secrets.GCP_ARTIFACTORY_SERVICE_ACCOUNT}}
           export_default_credentials: true
       - name: Cache local Maven repository
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: ~/.m2/repository
           key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}

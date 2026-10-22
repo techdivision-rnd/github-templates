@@ -36,7 +36,8 @@ jobs:
       - name: Set GCP project id as environment variable
         run: echo "GCP_PROJECT=${{ inputs.project_id }}" >> $GITHUB_ENV
       - name: Set Artifact ID
-        run: echo "ARTIFACT_ID=$( mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout )" >> $GITHUB_ENV
+        # only take the last stdout line: the artifactregistry wagon may print "INFO: Failed to detect whether we are running on Google Compute Engine." before
+        run: echo "ARTIFACT_ID=$(mvn help:evaluate -Dexpression=project.artifactId -q -DforceStdout 2>/dev/null | tail -n1)" >> $GITHUB_ENV
       - name: Print variables
         run: |
           echo ${{ env.RELEASE_VERSION }}
